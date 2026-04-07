@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Plus, Settings, LogOut, Copy, Check, 
-  BarChart2, ListTodo, Lightbulb, Users
+  BarChart2, ListTodo, Lightbulb, Users, UserPlus
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -60,6 +60,9 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [newMemberName, setNewMemberName] = useState('');
+  const [addMemberError, setAddMemberError] = useState('');
   
   // Quick add form state
   const [newTask, setNewTask] = useState({
@@ -155,6 +158,35 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Failed to add task:', error);
+    }
+  };
+
+  const handleAddMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMemberName.trim()) return;
+
+    setAddMemberError('');
+    try {
+      const response = await fetch('/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          familyId: parseInt(familyId!),
+          name: newMemberName.trim()
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setAddMemberError(data.error || 'Failed to add member');
+        return;
+      }
+
+      setNewMemberName('');
+      setShowAddMember(false);
+      loadData();
+    } catch (error) {
+      setAddMemberError('Failed to add member');
     }
   };
 
@@ -318,6 +350,46 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
+
+            {/* Add Member Card */}
+            {showAddMember ? (
+              <form onSubmit={handleAddMember} className="bg-zinc-900 rounded-xl p-4 border border-purple-500">
+                <input
+                  type="text"
+                  value={newMemberName}
+                  onChange={(e) => setNewMemberName(e.target.value)}
+                  placeholder="Name..."
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  autoFocus
+                />
+                {addMemberError && (
+                  <p className="text-red-400 text-xs mb-2">{addMemberError}</p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-1.5 rounded-lg text-sm"
+                  >
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddMember(false); setNewMemberName(''); setAddMemberError(''); }}
+                    className="px-3 py-1.5 text-zinc-400 hover:text-white text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button
+                onClick={() => setShowAddMember(true)}
+                className="bg-zinc-900 rounded-xl p-4 border border-dashed border-zinc-700 hover:border-purple-500 flex flex-col items-center justify-center gap-2 text-zinc-400 hover:text-purple-400 transition-colors"
+              >
+                <UserPlus className="h-6 w-6" />
+                <span className="text-sm">Add Member</span>
+              </button>
+            )}
           </div>
         </section>
 
